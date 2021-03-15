@@ -1,0 +1,59 @@
+version: "2.0"
+
+stories:
+
+- story: happy path 1
+  steps:
+  - intent: double_chain_and_star
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 2
+  steps:
+  - intent: double_chain
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 3
+  steps:
+  - intent: simple_chain_and_star
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 4
+  steps:
+  - intent: simple_chain
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 5
+  steps:
+  - intent: star_and_double_chain
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 6
+  steps:
+  - intent: star
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 7
+  steps:
+  - intent: specs
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
+
+- story: happy path 8
+  steps:
+  - intent: misc
+  - action: show_entities
+  - slot_was_set: 
+    - graph: "Graph"
