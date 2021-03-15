@@ -29,44 +29,71 @@ class ActionShowEntities(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
+        # Leo las entidades que encontro en el requerimiento
         entities = get_entities(tracker)
         print_summary(entities)
+        # Obtengo el intent, que voy a usar para elegir la estructura de grafo
         intent = get_intent(tracker)
+        # Obtengo el grafo almacenado en el tracker (si no existe crea uno nuevo vacio)
         graph_manager = GraphManager(tracker)
+        # Actualizo el grafo con las entidades y el intent acordes
         graph_manager.update_graph_with_new_entities(entities,intent)
+        # Genero la imagen para mostrar al usuario
         graph_image_file = graph_manager.get_image_file()
+        # Devuelvo esa imagen
         dispatcher.utter_message(image=os.path.abspath(graph_image_file))
-
+        
+        # Guardo el grafo actualizado
         return [graph_manager.save_to_slot(slotname="graph")]
 
 class GraphManager:
+    
     def __init__(self, tracker):
+        """
+        Inicializa el grafo vacio o trae el que ya existe en el slot correspondiente
+        """
         if self.is_graph_slot_loaded(tracker):
             self.graph = self.load_from_slot(tracker)
         else:
             self.graph = self.create_new()
 
     def is_graph_slot_loaded(self,tracker):
+        """
+        Chequea si el grafo existe
+        """
         graph_slot = tracker.get_slot("graph")
         return graph_slot != None
 
     def create_new(self):
+        """
+        Crea grafo nuevo
+        """
         return pgv.AGraph(strict=False,directed=True)
 
     def load_from_slot(self,tracker):
+        """ 
+        Cargo grafo desde el slot
+        """
         graph_slot = tracker.get_slot("graph")
         return pgv.AGraph(string=graph_slot)
 
     def save_to_slot(self,slotname):
+        """
+        Guardo grafo a slot
+        """
         return SlotSet(slotname,self.graph.to_string())
 
     def update_graph_with_new_entities(self,entities,intent):
+        """
+        De acuerdo al intent ejecuto distintas funciones para actualizar el grafo
+        """
         print(intent)
-        if intent == "start":
+        if intent == "star":
             self.update_graph_with_star_entities(entities)
         elif intent == "simple_chain" or intent == "double_chain":
             self.update_graph_with_chained_entities(entities)  
         else:
+            # Mezcla de star con cadena de acuerdo al intent
             nodes = [e for e in entities if e.is_node()]
             if "simple" in intent:
                 cut_index = entities.index(nodes[1])
@@ -79,18 +106,22 @@ class GraphManager:
 
 
     def get_image_file(self):
+        # Generar imagen del grafo
         filename = 'file'+ str(datetime.now()) +'.png'
         self.draw_in_file(filename)
         return filename
 
     def draw_in_file(self,filename):
+        # Guardar grafo a archivo
         self.graph.layout(prog='dot') 
         self.graph.draw(filename) 
 
     def add_node(self,node):
+        # Agregar nodo al grafo
         self.graph.add_node(node.name,color=node.get_color(),shape=node.get_shape())
 
     def update_name_if_similar_found_in_graph(self,node_to_add):
+        # Para nombres parecidos, unifico
         closest = {'node':None,'distance':3}
         for node_to_compare in self.graph.nodes():
             calculated_distance = enchant.utils.levenshtein(node_to_compare, node_to_add.name)
@@ -101,6 +132,7 @@ class GraphManager:
             node_to_add.name = closest['node'].name
 
     def get_closest_node(self,reference_node,nodes):
+        # Obtengo el nodo mas cercano al reference_node
         prev_node = nodes[0]
         if reference_node.start < prev_node.start:
             return prev_node
