@@ -49,44 +49,32 @@ class ActionShowEntities(Action):
 class GraphManager:
     
     def __init__(self, tracker):
-        """
-        Inicializa el grafo vacio o trae el que ya existe en el slot correspondiente
-        """
+        # Inicializa el grafo vacio o trae el que ya existe en el slot correspondiente
         if self.is_graph_slot_loaded(tracker):
             self.graph = self.load_from_slot(tracker)
         else:
             self.graph = self.create_new()
 
     def is_graph_slot_loaded(self,tracker):
-        """
-        Chequea si el grafo existe
-        """
+        # Chequea si el grafo existe
         graph_slot = tracker.get_slot("graph")
         return graph_slot != None
 
     def create_new(self):
-        """
-        Crea grafo nuevo
-        """
+        # Crea grafo nuevo
         return pgv.AGraph(strict=False,directed=True)
 
     def load_from_slot(self,tracker):
-        """ 
-        Cargo grafo desde el slot
-        """
+        # Cargo grafo desde el slot
         graph_slot = tracker.get_slot("graph")
         return pgv.AGraph(string=graph_slot)
 
     def save_to_slot(self,slotname):
-        """
-        Guardo grafo a slot
-        """
+        # Guardo grafo a slot
         return SlotSet(slotname,self.graph.to_string())
 
     def update_graph_with_new_entities(self,entities,intent):
-        """
-        De acuerdo al intent ejecuto distintas funciones para actualizar el grafo
-        """
+        # De acuerdo al intent ejecuto distintas funciones para actualizar el grafo
         print(intent)
         if intent == "star":
             self.update_graph_with_star_entities(entities)
@@ -148,14 +136,17 @@ class GraphManager:
             return prev_node
 
     def enough_nodes(self,nodes):
+        # si tengo suficientes nodos como para generar un link
         return len(nodes) >= 2
 
     def update_edge_label(self,edge,entity):
+        # Actualizar etiqueta de un conector con el nombre de una entidad
         label = edge.attr['label']
         if entity.name not in label:
             edge.attr['label'] += ", " + entity.name
 
     def add_labeled_edge(self,node1,node2,entity):
+        # Agregar una conexión con etiqueta (si ya existe solo actualizo la etiqueta con la entidad nueva
         if self.graph.has_edge(node1.name,node2.name):
             edge = self.graph.get_edge(node1.name, node2.name) 
             self.update_edge_label(edge,entity)
@@ -163,9 +154,11 @@ class GraphManager:
             self.graph.add_edge(node1.name, node2.name, label=entity.name)  
 
     def add_edge(self,node1,node2):
+        # Agregar conexion entre dos nodos, sin etiqueta
         self.graph.add_edge(node1.name, node2.name)  
 
-    def find_nodes_connected_by_event(self,event,nodes):     
+    def find_nodes_connected_by_event(self,event,nodes): 
+        # Trae los nodos que estan unidos por un evento
         i = 0
         first_node,second_node = nodes[i],nodes[i+1]
         while i < len(nodes)-2:
@@ -177,17 +170,20 @@ class GraphManager:
         return first_node,second_node           
 
     def update_nodes(self,nodes):
+        # Actualiza los nombres de los nodos si encuentra nombres similares en el grafo
         for node in nodes:
             self.update_name_if_similar_found_in_graph(node)
             self.add_node(node)
 
     def update_events(self,nodes,entities):
+        # Actualiza los nombres de las conexiones si tenemos una etiqueta nueva
         events = [e for e in entities if e.is_event()]
         for event in events:
             node1,node2 = self.find_nodes_connected_by_event(event,nodes)          
             self.add_labeled_edge(node1,node2,event)
     
     def update_properties(self,nodes,entities):
+        # Lo mismo para las propiedades
         properties = [e for e in entities if e.is_property()]
         for property_node in properties:
             if property_node not in nodes:
@@ -196,6 +192,7 @@ class GraphManager:
                 self.add_edge(closest_node, property_node)  
 
     def connect_unconnected_nodes(self,nodes):
+        # Si quedan nodos desconectados los unimos
         prev_node = nodes[0]
         for node in nodes[1:]:
             if not self.graph.has_edge(prev_node.name,node.name):
@@ -204,6 +201,7 @@ class GraphManager:
             prev_node = node
 
     def update_graph_with_chained_entities(self,entities):
+        # un modo de agregar entidades
         nodes = [e for e in entities if e.is_node()]
         if not self.enough_nodes(nodes):
             nodes = [e for e in entities if e.is_node() or e.is_property()]
